@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DependencyInjection", "DependencyInjection\DependencyInjection.csproj", "{E9CFAD25-A399-49F1-B37E-A87522AABCA1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Injector", "Injector\Injector.csproj", "{5190F985-EA1C-461F-A97E-A118CC5AA57A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E9CFAD25-A399-49F1-B37E-A87522AABCA1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E9CFAD25-A399-49F1-B37E-A87522AABCA1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E9CFAD25-A399-49F1-B37E-A87522AABCA1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E9CFAD25-A399-49F1-B37E-A87522AABCA1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5190F985-EA1C-461F-A97E-A118CC5AA57A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5190F985-EA1C-461F-A97E-A118CC5AA57A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5190F985-EA1C-461F-A97E-A118CC5AA57A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5190F985-EA1C-461F-A97E-A118CC5AA57A}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
