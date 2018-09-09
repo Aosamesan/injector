@@ -56,7 +56,7 @@ namespace Injector.Helpers
         
         public static IEnumerable<string> GetNamespaceToScan(Type contextType)
         {
-            if ((from Attribute attr in contextType.CustomAttributes
+            if ((from Attribute attr in contextType.GetCustomAttributes<Attribute>()
                 where attr is Context.Attributes.Context
                 select attr).First() is Context.Attributes.Context contextAttribute)
             {
@@ -64,6 +64,15 @@ namespace Injector.Helpers
             }
             return ImmutableList<string>.Empty;
         }
-        
+
+        public static IEnumerable<TSource> GetMethodBases<TSource>(this IEnumerable<TSource> sources, Predicate<TSource> predicate) where TSource : MethodBase
+        => from TSource source in sources where predicate(source) select source;
+
+        public static IEnumerable<TSource> GetMethodBaseWithParameter<TSource, TAttribute>(this IEnumerable<TSource> sources) where TSource : MethodBase where TAttribute : Attribute
+        => GetMethodBases(sources, source => IsMethodMarked<TAttribute>(source) && source.GetParameters()?.Length != 0);
+
+        public static IEnumerable<TSource> GetMethodBaseWithoutParameter<TSource, TAttribute>(this IEnumerable<TSource> sources) where TSource : MethodBase where TAttribute : Attribute
+        => GetMethodBases(sources, source => IsMethodMarked<TAttribute>(source) && source.GetParameters()?.Length == 0);
+
     }
 }

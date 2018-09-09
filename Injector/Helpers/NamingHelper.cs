@@ -5,18 +5,38 @@ namespace Injector.Helpers
 {
     public static class NamingHelper
     {
+        // UL => pass, LL => pass, LU => pass, UU => lower, *L => *U
         public static string ConvertToCamelCase(string name)
         {
             var stringBuilder = new StringBuilder();
-            var capitalizeFlag = false;
+            bool previousSign = false;
+            bool previousUpper = true;
 
-            foreach (var ch in name)
+            foreach (char ch in name)
             {
                 if (char.IsLetterOrDigit(ch))
                 {
-                    stringBuilder.Append(capitalizeFlag ? char.ToUpper(ch) : char.ToLower(ch));
+                    char appendChar = ch;
+                    if (previousSign)
+                    {
+                        appendChar = char.ToUpper(ch);
+                    }
+                    else
+                    {
+                        if (previousUpper)
+                        {
+                            appendChar = char.ToLower(ch);
+                        }
+                    }
+
+                    stringBuilder.Append(appendChar);
+                    previousUpper = char.IsUpper(appendChar);
+                    previousSign = false;
                 }
-                capitalizeFlag = !char.IsLetter(ch);
+                else
+                {
+                    previousSign = true;
+                }
             }
 
             return stringBuilder.ToString();

@@ -13,7 +13,7 @@ namespace Injector.Helpers
         {
             if (type.IsClass)
             {
-                return type.IsAbstract && type.IsSealed;
+                return !(type.IsAbstract && type.IsSealed);
             }
 
             return false;

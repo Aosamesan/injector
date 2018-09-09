@@ -3,6 +3,9 @@ using System.Diagnostics;
 using System.Linq;
 using System.Net.Http.Headers;
 using System.Reflection;
+using Injector.Context;
+using Injector.Context.Attributes;
+using Injector.ContextLoader;
 using Injector.Helpers;
 
 namespace DependencyInjection
@@ -10,43 +13,19 @@ namespace DependencyInjection
     class Program {
         public static void Main(string[] args)
         {
-            var fooValue = GetValue(typeof(Foo));
-            var barValue = GetValue(typeof(Bar));
-
-            Console.WriteLine(fooValue.Aggregate((a, b) => a + ", " + b));
-            Console.WriteLine(barValue.Aggregate((a, b) => a + ", " + b));
-
-        }
-
-        public static string[] GetValue(Type type)
-        {
-            var attr = type.GetCustomAttribute<TestAttribute>();
-            return attr?.Values;
-        }
-
-        public static string[] GetStrings(params string[] args)
-        {
-            return args;
-        }
-
-        [TestAttribute(Values = new []{"foo", "bar"})]
-
-        public class Foo
-        {
-            
-        }
-
-        [TestAttribute(Values = new []{"baz"})]
-        public class Bar
-        {
-            
+            IContext context = ContextLoader.LoadContext(typeof(TestConfig));
+            string testString = context.Get<string>("testString");
+            Console.WriteLine(testString);
         }
         
     }
 
-    [AttributeUsage(AttributeTargets.Class)]
-    class TestAttribute : Attribute
+    [Context]
+    public class TestConfig
     {
-        public string[] Values { get; set; }
+        [Instantiate]
+        public string TestString() {
+            return "foo";
+        }
     }
 }

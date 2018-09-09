@@ -5,6 +5,7 @@ namespace Injector.Context.Attributes
     [AttributeUsage(AttributeTargets.Class)]
     public class Context : Attribute
     {
-        public string[] NamespaceToScan { get; set; }
+        string[] namespaceToScan = Array.Empty<string>();
+        public string[] NamespaceToScan { get => namespaceToScan; set => namespaceToScan = value; }
     }
 }
