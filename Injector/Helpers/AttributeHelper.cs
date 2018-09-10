@@ -36,6 +36,13 @@ namespace Injector.Helpers
                     in parameterInfo.GetCustomAttributes<Attribute>()
                 select attr is TAttribute).Aggregate(false, CommonHelper.Disjunction);
         }
+
+        public static bool IsPropertyMarked<TAttribute>(PropertyInfo propertyInfo) where TAttribute : Attribute
+        {
+            return (from Attribute attr
+                    in propertyInfo.GetCustomAttributes<Attribute>()
+                select attr is TAttribute && propertyInfo.CanWrite).Aggregate(false, CommonHelper.Disjunction);
+        }
         
         public static void CheckCorrectCall<TAttribute>() where TAttribute : Attribute
         {
