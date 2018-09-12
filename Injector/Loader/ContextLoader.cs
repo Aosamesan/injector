@@ -1,70 +1,73 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Collections.Specialized;
 using System.Linq;
 using System.Reflection;
 using Injector.Context;
 using Injector.Context.Attributes;
+using Injector.Context.Exceptions;
 using Injector.Context.Implementations;
-using Injector.ContextLoader.HelperClass;
-using Injector.ContextLoader.Models;
 using Injector.Helpers;
+using Injector.Loader.Exceptions;
+using Injector.Loader.HelperClass;
+using Injector.Loader.Models;
+using Injector.PropertyLoader.Attributes;
+using Injector.PropertyLoader.Loader;
 
-namespace Injector.ContextLoader
+namespace Injector.Loader
 {
-    public class GenericContextLoader
+    public class ContextLoader
     {
         private Type ContextType { get; }
         private object Context { get; }
-        private IDictionary<string, LoadableTypeModel> ModelStorage { get; }
+        private IDictionary<string, InstantiateModel> ModelStorage { get; }
         private IDictionary<string, object> ObjectStorage { get; }
+        private PropertyLoader.Loader.PropertyLoader PropertyLoader { get; }
 
-        private GenericContextLoader(Type contextType)
+        private ContextLoader(Type contextType)
         {
             ContextType = contextType;
             Context = Activator.CreateInstance(ContextType);
-            ModelStorage = new Dictionary<string, LoadableTypeModel>();
+            ModelStorage = new Dictionary<string, InstantiateModel>();
             ObjectStorage = new Dictionary<string, object>();
+            PropertyLoader = new PropertyLoader.Loader.PropertyLoader();
         }
 
-        public static GenericContextLoader CreateContextLoader<T>()
+        public static ContextLoader CreateContextLoader<T>()
         {
             var contextType = typeof(T);
             // Check a context class is marked with the [Context] attribute.
-            AttributeHelper.CheckCorrectContext<Context.Attributes.Context>(contextType);
+            AttributeHelper.CheckHasTypeAttribute<Context.Attributes.Context, NotLoadableContextException>(contextType);
             // Check a context class is instantiable
             ReflectionHelper.CheckInstantiableClass(contextType);
-            return new GenericContextLoader(contextType);
+            return new ContextLoader(contextType);
         }
 
-        private LoadableTypeModel AddModel(Type type)
+        private InstantiateModel AddModel(Type type)
         {
-            return AddModel(new LoadableTypeModel(type));
+            return AddModel(new InstantiateModel(type));
         }
 
-        private LoadableTypeModel AddModel(MethodInfo methodInfo)
+        private InstantiateModel AddModel(MethodInfo methodInfo)
         {
-            return AddModel(new LoadableTypeModel(methodInfo));
+            return AddModel(new InstantiateModel(methodInfo));
         }
 
-        private LoadableTypeModel AddModel(Type type, string name)
+        private InstantiateModel AddModel(Type type, string name)
         {
-            return AddModel(new LoadableTypeModel(type, name));
+            return AddModel(new InstantiateModel(type, name));
         }
 
-        private LoadableTypeModel AddModel(MethodInfo methodInfo, string name)
+        private InstantiateModel AddModel(MethodInfo methodInfo, string name)
         {
-            return AddModel(new LoadableTypeModel(methodInfo, name));
+            return AddModel(new InstantiateModel(methodInfo, name));
         }
 
-        private LoadableTypeModel AddModel(LoadableTypeModel model)
+        private InstantiateModel AddModel(InstantiateModel model)
         {
             return ModelStorage[model.Name] = model;
         }
 
-        private object Instantiate(LoadableTypeModel model)
+        private object Instantiate(InstantiateModel model)
         {
             var argumentList = from string name
                     in ObjectStorage.Keys
@@ -74,17 +77,10 @@ namespace Injector.ContextLoader
                                    ).Aggregate(false, CommonHelper.Disjunction)
                                select ObjectStorage[name];
 
-            if (model.IsConstructorType)
-            {
-                return Activator.CreateInstance(model.Type, argumentList.ToArray());
-            }
-            else
-            {
-                return model.Method.Invoke(Context, argumentList.ToArray());
-            }
+            return model.IsConstructorType ? Activator.CreateInstance(model.Type, argumentList.ToArray()) : model.Method.Invoke(Context, argumentList.ToArray());
         }
 
-        private void UpdateWeight(LoadableTypeModel model)
+        private void UpdateWeight(InstantiateModel model)
         {
             var weight = (from string name
                         in ModelStorage.Keys
@@ -97,7 +93,7 @@ namespace Injector.ContextLoader
             model.UpdateWeight(weight);
         }
 
-        private bool CanInstantiate(LoadableTypeModel model)
+        private bool CanInstantiate(InstantiateModel model)
         {
             var parameterInfos = model.Method.GetParameters();
             var required = parameterInfos.Length;
@@ -126,9 +122,22 @@ namespace Injector.ContextLoader
         [ContextConfiguableMethod]
         public IContext LoadContext()
         {
+            var propertyDictionary = PropertyLoader.Load(ContextType);
+            // inject property into context
+            var contextProperties = from PropertyInfo propertyInfo
+                    in ContextType.GetProperties()
+                where propertyInfo.PropertyType == typeof(string) &&
+                      AttributeHelper.IsPropertyMarked<PropertyValue>(propertyInfo)
+                select (propertyInfo, AttributeHelper.getAttribute<PropertyValue>(propertyInfo));
+
+            foreach (var property in contextProperties)
+            {
+                property.Item1.SetValue(Context, propertyDictionary[property.Item2.Name]);
+            }
+            
             var contextBuilder = new InjectorContext.InjectorContextBuilder();
             // initialize models
-            var priorityQueue = new SimplePriorityQueue<int, LoadableTypeModel>();
+            var priorityQueue = new SimplePriorityQueue<int, InstantiateModel>();
             var methodsInContext = from MethodInfo methodInfo
                     in ContextType.GetMethods(BindingFlags.Instance | BindingFlags.Public)
                                    where AttributeHelper.IsMethodMarked<Instantiate>(methodInfo)
@@ -153,6 +162,8 @@ namespace Injector.ContextLoader
                     in assembly.GetTypes()
                             where AttributeHelper.IsTypeMarked<Instantiate>(type) && namespaceToScan.Contains(type.Namespace)
                             select type;
+            
+            // create models to instantiate
             foreach (var scanType in scanTypes)
             {
                 var attr = scanType.GetCustomAttribute<Instantiate>();
@@ -165,7 +176,7 @@ namespace Injector.ContextLoader
             }
 
             // Create Objects
-            int previousCount = priorityQueue.Count;
+            var previousCount = priorityQueue.Count;
 
             while (!priorityQueue.IsEmpty)
             {
@@ -173,6 +184,19 @@ namespace Injector.ContextLoader
                 if (CanInstantiate(model))
                 {
                     var instance = Instantiate(model);
+                    // property injection
+                    if (model.IsConstructorType)
+                    {
+                        var properties = from PropertyInfo propertyInfo in model.Type.GetProperties()
+                            where AttributeHelper.IsPropertyMarked<PropertyValue>(propertyInfo)
+                            select (propertyInfo, AttributeHelper.getAttribute<PropertyValue>(propertyInfo));
+
+                        foreach (var property in properties)
+                        {
+                            var name = property.Item2.Name;
+                            property.Item1.SetValue(instance, propertyDictionary[name]);
+                        }
+                    }
                     ObjectStorage[model.Name] = instance;
                 }
                 else
@@ -183,7 +207,7 @@ namespace Injector.ContextLoader
 
                 if (previousCount <= priorityQueue.Count)
                 {
-                    throw new Exception("Error Occurred");
+                    throw new DependencyNotFoundException(model);
                 }
 
                 previousCount = priorityQueue.Count;

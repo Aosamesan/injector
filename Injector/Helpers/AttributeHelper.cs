@@ -5,12 +5,24 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using Injector.Context.Exceptions;
-using Injector.ContextLoader.Exceptions;
+using Injector.Loader.Exceptions;
 
 namespace Injector.Helpers
 {
     public static class AttributeHelper
     {
+        public static TAttribute getAttribute<TAttribute>(Type type) where TAttribute : Attribute
+        {
+            return (from Attribute attr in type.GetCustomAttributes() where attr is TAttribute select attr)
+                .FirstOrDefault() as TAttribute;
+        }
+        
+        public static TAttribute getAttribute<TAttribute>(PropertyInfo propertyInfo) where TAttribute : Attribute
+        {
+            return (from Attribute attr in propertyInfo.GetCustomAttributes() where attr is TAttribute select attr)
+                .FirstOrDefault() as TAttribute;
+        }
+        
         public static bool IsTypeMarked<TClass, TAttribute>() where TAttribute : Attribute
         {
             return IsTypeMarked<TAttribute>(typeof(TClass));
@@ -53,12 +65,15 @@ namespace Injector.Helpers
             }
         }
 
-        public static void CheckCorrectContext<TAttribute>(Type type) where TAttribute : Attribute
+        public static void CheckHasTypeAttribute<TAttribute, TException>(Type type) where TAttribute : Attribute where TException : Exception
         {
-            if (!IsTypeMarked<TAttribute>(type))
+            if (IsTypeMarked<TAttribute>(type)) return;
+            if (!(Activator.CreateInstance(typeof(TException), type) is Exception e))
             {
-                throw new NotLoadableContextException(type);
+                throw new Exception($"{type} does not have {typeof(TAttribute).Name} and {typeof(TException).Name} has no constructor.");
             }
+
+            throw e;
         }
         
         public static IEnumerable<string> GetNamespaceToScan(Type contextType)

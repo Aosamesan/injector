@@ -1,6 +1,6 @@
 using System;
 
-namespace Injector.ContextLoader.Exceptions
+namespace Injector.Loader.Exceptions
 {
     public class NotLoadableContextException : Exception
     {

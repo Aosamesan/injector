@@ -4,9 +4,9 @@ using System.Reflection;
 using System.Text;
 using Injector.Helpers;
 
-namespace Injector.ContextLoader.Models
+namespace Injector.Loader.Models
 {
-    public sealed class LoadableTypeModel
+    public sealed class InstantiateModel
     {
         public bool IsConstructorType { get; }
         public string Name { get; }
@@ -14,7 +14,7 @@ namespace Injector.ContextLoader.Models
         public int Weight { get; private set; }
         public MethodBase Method { get; }
 
-        public LoadableTypeModel(Type type, string name)
+        public InstantiateModel(Type type, string name)
         {
             Name = NamingHelper.ConvertToCamelCase(name);
             Type = type;
@@ -23,7 +23,7 @@ namespace Injector.ContextLoader.Models
             IsConstructorType = true;
         }
 
-        public LoadableTypeModel(MethodInfo methodInfo, string name)
+        public InstantiateModel(MethodInfo methodInfo, string name)
         {
             Name = NamingHelper.ConvertToCamelCase(name);
             Type = methodInfo.ReturnType;
@@ -32,13 +32,13 @@ namespace Injector.ContextLoader.Models
             IsConstructorType = false;
         }
 
-        public LoadableTypeModel(Type type)
+        public InstantiateModel(Type type)
             : this(type, type.Name)
         {
 
         }
 
-        public LoadableTypeModel(MethodInfo methodInfo)
+        public InstantiateModel(MethodInfo methodInfo)
             : this(methodInfo, NamingHelper.ConvertToCamelCase(methodInfo.Name))
         {
             

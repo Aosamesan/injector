@@ -3,11 +3,11 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Injector.ContextLoader.HelperClass
+namespace Injector.Loader.HelperClass
 {
     public class SimplePriorityQueue<TKey, TValue> where TKey : IComparable<TKey> where TValue : class
     {
-        private IDictionary<TKey, Queue<TValue>> innerSortedDictionary;
+        private readonly IDictionary<TKey, Queue<TValue>> innerSortedDictionary;
         public int Count { get; private set; }
         public bool IsEmpty => Count == 0;
 
