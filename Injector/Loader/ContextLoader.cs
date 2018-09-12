@@ -230,7 +230,25 @@ namespace Injector.Loader
                     }
                 }
             }
-
+            
+            // invoke post constructor
+            foreach (var name in ObjectStorage.Keys)
+            {
+                var model = ModelStorage[name];
+                if (model.IsConstructorType)
+                {
+                    var type = model.Type;
+                    var instance = ObjectStorage[name];
+                    var postConstructors =
+                        from MethodInfo method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                        where AttributeHelper.IsMethodMarked<PostConsturctor>(method)
+                        select method;
+                    foreach (var postConstructor in postConstructors)
+                    {
+                        postConstructor.Invoke(instance, null);
+                    }
+                }
+            }
             // Build
             foreach (var pair in ObjectStorage)
             {
