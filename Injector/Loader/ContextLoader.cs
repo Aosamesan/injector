@@ -224,10 +224,10 @@ namespace Injector.Loader
                 foreach (var property in properties)
                 {
                     var attr = property.GetCustomAttribute<Autowired>();
-                    if (!string.IsNullOrEmpty(attr?.Name))
-                    {
-                        property.SetValue(instance, ObjectStorage[attr.Name]);
-                    }
+                    property.SetValue(instance,
+                        !string.IsNullOrEmpty(attr?.Name)
+                            ? ObjectStorage[attr.Name]
+                            : ObjectStorage[NamingHelper.ConvertToCamelCase(property.Name)]);
                 }
             }
             
@@ -235,18 +235,17 @@ namespace Injector.Loader
             foreach (var name in ObjectStorage.Keys)
             {
                 var model = ModelStorage[name];
-                if (model.IsConstructorType)
+                if (!model.IsConstructorType)
+                    continue;
+                var type = model.Type;
+                var instance = ObjectStorage[name];
+                var postConstructors =
+                    from MethodInfo method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                    where AttributeHelper.IsMethodMarked<PostConsturctor>(method)
+                    select method;
+                foreach (var postConstructor in postConstructors)
                 {
-                    var type = model.Type;
-                    var instance = ObjectStorage[name];
-                    var postConstructors =
-                        from MethodInfo method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance)
-                        where AttributeHelper.IsMethodMarked<PostConsturctor>(method)
-                        select method;
-                    foreach (var postConstructor in postConstructors)
-                    {
-                        postConstructor.Invoke(instance, null);
-                    }
+                    postConstructor.Invoke(instance, null);
                 }
             }
             // Build

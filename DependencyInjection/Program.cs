@@ -26,6 +26,7 @@ namespace DependencyInjection
             testItem.Print();
             Console.WriteLine(testItem.Foo);
             Console.WriteLine(testItem.Bar);
+            Console.WriteLine(testItem.FooBar);
             Console.WriteLine(context.Get<string>("testString3"));
         }
         
@@ -70,7 +71,7 @@ namespace DependencyInjection
     {
         [PropertyValue("foo")]
         public string Foo { get; set; }
-        [Autowired("fooBar")]
+        [Autowired]
         public string FooBar { get; set; }
         private string testString;
         private string testString2;
